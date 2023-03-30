@@ -562,8 +562,8 @@ export class WindowHandler {
           this.mainWebContents.send('welcome', {
             url: podUrl,
             message: '',
-            urlValid: !!userConfigUrl,
-            isPodConfigured: this.isPodConfigured && !!userConfigUrl,
+            urlValid: !!podUrl,
+            isPodConfigured: this.isPodConfigured && !!podUrl,
             isBrowserLoginEnabled: this.config.enableBrowserLogin,
             browserLoginAutoConnect: this.config.browserLoginAutoConnect,
           });
