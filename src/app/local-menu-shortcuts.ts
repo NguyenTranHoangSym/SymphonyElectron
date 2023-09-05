@@ -1,6 +1,11 @@
-import { Menu, MenuItem, MenuItemConstructorOptions } from 'electron';
-import { isMac } from '../common/env';
-import { windowHandler } from './window-handler';
+import {
+  BrowserWindow,
+  Menu,
+  MenuItem,
+  MenuItemConstructorOptions,
+} from 'electron';
+import { isMac, isWindowsOS } from '../common/env';
+import { ICustomBrowserWindow, windowHandler } from './window-handler';
 import { resetZoomLevel, zoomIn, zoomOut } from './window-utils';
 
 export default class LocalMenuShortcuts {
@@ -11,6 +16,22 @@ export default class LocalMenuShortcuts {
   }
 
   public buildShortcutMenu = () => {
+    const focusedWindow = BrowserWindow.getFocusedWindow() || undefined;
+
+    // About App
+    this.menu.append(
+      new MenuItem(
+        this.getMenuItemOptions({
+          accelerator: isWindowsOS && 'Alt+1',
+          click: () => {
+            const windowName = focusedWindow
+              ? (focusedWindow as ICustomBrowserWindow).winName
+              : '';
+            windowHandler.createAboutAppWindow(windowName);
+          },
+        }),
+      ),
+    );
     // Devtools shortcut
     this.menu.append(
       new MenuItem(
