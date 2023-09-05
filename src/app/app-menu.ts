@@ -628,6 +628,7 @@ export class AppMenu {
       false;
     const updateChannel = this.getUpdateChannel();
     return {
+      id: menuSections.help,
       label: i18n.t('Help')(),
       role: 'help',
       submenu: [
@@ -800,6 +801,7 @@ export class AppMenu {
           ],
         },
         {
+          id: 'about',
           label: i18n.t('About Symphony')(),
           visible: isWindowsOS || isLinux,
           click(_menuItem, focusedWindow) {
