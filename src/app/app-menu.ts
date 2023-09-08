@@ -86,6 +86,7 @@ const menuItemConfigFields = [
   'isAutoUpdateEnabled',
   'enableBrowserLogin',
   'forceAutoUpdate',
+  'isPodUrlEditable',
 ];
 
 let {

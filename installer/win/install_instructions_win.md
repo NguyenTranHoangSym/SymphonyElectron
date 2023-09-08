@@ -579,6 +579,16 @@ Expected values:
 * "false"
   Will also consider PMP settings
 
+  ### IS_POD_URL_EDITABLE
+
+The provided property will enable user ability to allow user editing pod url. 
+
+By default its value will be 'true'
+
+Expected values:
+* 'True' means to allow user edit the pod url
+* 'False' means to prevent user from changing the pod url
+
 #### Example, install with browser login autoconnect enabled
 
     msiexec /i Symphony.msi BROWSER_LOGIN_AUTOCONNECT="true"
@@ -597,3 +607,10 @@ or
 or
     msiexec /i Symphony.msi
     This equals to msiexec /i Symphony.msi FORCE_AUTO_UPDATE="false"
+
+#### Example, install with is-pod-url-editable
+
+    msiexec /i Symphony.msi IS_POD_URL_EDITABLE="false"
+or
+    msiexec /i Symphony.msi
+    This equals to msiexec /i Symphony.msi IS_POD_URL_EDITABLE="true"

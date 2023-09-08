@@ -8,7 +8,7 @@ describe('about app', () => {
   const aboutAppDataLabel = 'about-app-data';
   const aboutDataMock = {
     sbeVersion: '1',
-    userConfig: {},
+    userConfig: { isPodUrlEditable: true },
     globalConfig: {},
     cloudConfig: {},
     finalConfig: {},
