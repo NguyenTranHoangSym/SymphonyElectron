@@ -4,6 +4,7 @@ import {
   Page,
   _electron as electron,
 } from '@playwright/test';
+import { exec } from 'child_process';
 
 interface IPlaywrightTestWindows {
   electronApp: ElectronApplication;
@@ -41,7 +42,8 @@ export const describeWithPlaywright =
 
     const loadElectron = async () => {
       const electronApplication = await electron.launch({
-        executablePath: '../node_modules/electron/dist/Electron.exe',
+        executablePath:
+          '../node_modules/electron/dist/Electron.app/Contents/MacOS/Electron',
         args: [
           '../',
           '--url=https://sym-cicd131.qa.symphony.com',
@@ -51,25 +53,7 @@ export const describeWithPlaywright =
           ELECTRON_DEBUGGING: 'true',
           ELECTRON_DEV: 'true',
         },
-        timeout: 5000,
-      });
-
-      await electronApplication.waitForEvent('window', {
-        predicate: async (page) => {
-          pageRef.windows.push(page);
-          if (page.url().includes('https://sym-cicd131.qa.symphony.com/')) {
-            return true;
-          }
-
-          return false;
-        },
-      });
-
-      electronApplication.on('window', (page) => {
-        console.log(page);
-        page.on('console', (msg) => {
-          console.log(msg.text());
-        });
+        timeout: 100000,
       });
 
       return electronApplication;
@@ -91,14 +75,18 @@ test.describe('Test suit', async () => {
 
   test.describe.configure({ mode: 'serial' });
 
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     playwrightWindows = await describeWithPlaywright();
   });
 
-  test('it should login and verify page all right', async () => {
-    // Title App
-    const main = playwrightWindows.getMainPage();
+  test.afterEach(async () => {
+    playwrightWindows.electronApp.close();
+  });
 
+  // Mac only, build for Mac exclusively
+  test('it should login and verify screenshot', async () => {
+    // Title App
+    const main = await playwrightWindows.electronApp.firstWindow();
     await main.waitForSelector('h1');
     await main.screenshot({ path: 'sample.png' });
     const inputEmail = main.locator('#signin-email');
@@ -122,27 +110,71 @@ test.describe('Test suit', async () => {
     await main.screenshot({ path: 'sample-eula.png' });
     await main.waitForSelector('#APP_WRAPPER');
     await main.screenshot({ path: 'main-app.png' });
+    await main.waitForSelector('[data-testid="SCREEN_SNIPPET_BUTTON"]');
+    await main.locator('[data-testid="SCREEN_SNIPPET_BUTTON"]').click();
+    await exec(`python3 native-mac/selectArea.py ${process.pid}`);
+    await main.waitForTimeout(3000);
+    const currentWindows = (await playwrightWindows.electronApp.windows()).at(
+      1,
+    );
+    await currentWindows?.waitForSelector("[data-testid='done-button']");
+    await currentWindows?.click("[data-testid='done-button']");
+    await main.waitForTimeout(3000);
+    const attachments = await main.getByTestId(`ATTACHMENT_FILE_THUMBNAIL`);
+    const attachmentsSource = await Promise.all(
+      (
+        await attachments.all()
+      ).map(async (attachment) => {
+        return await attachment.getAttribute('alt');
+      }),
+    );
+    await main.waitForSelector("[title='Send message']");
+    await main.click("[title='Send message']");
+    await main.waitForTimeout(3000);
+    await main.waitForSelector('[data-testid="ATTACHMENT_WRAPPER"] figure img');
+    const messageAttachments = await main
+      .getByTestId('ATTACHMENT_WRAPPER')
+      .getByRole('figure');
+    await main.waitForTimeout(3000);
+    const messageAttachmentsSource = await Promise.all(
+      (
+        await messageAttachments.all()
+      ).map(async (messageAttachment) => {
+        const html = await messageAttachment.innerHTML();
+
+        return await messageAttachment.getAttribute('data-testid');
+      }),
+    );
+
     await test
-      .expect(await main.locator('#APP_WRAPPER').isVisible())
+      .expect(
+        messageAttachmentsSource.some(
+          (messageAttachment) =>
+            !!attachmentsSource.find((attachmentSource) =>
+              messageAttachment?.includes(attachmentSource ?? ''),
+            ),
+        ),
+      )
       .toBe(true);
   });
 
-  test('it should show about app on click "about"', async () => {
-    // Electron App
-    const electron = playwrightWindows.electronApp;
-
+  test('it should login and verify about app', async () => {
     // Title App
-    const titleBar = playwrightWindows.getTitlePage();
+    const main = await playwrightWindows.electronApp.firstWindow();
+    exec(
+      `python3 native-mac/aboutApp/aboutApp.py ${process.pid}`,
+      (res, res2, res3) => {
+        console.log(res);
+      },
+    );
+    await main.waitForTimeout(5000);
+    const currentWindows = await playwrightWindows.electronApp.windows();
+    const currentBrowserWindows = await currentWindows.at(1);
+    const aboutAppTitle = await currentBrowserWindows
+      ?.locator('.AboutApp-main-title')
+      .first();
+    const title = await aboutAppTitle?.textContent();
 
-    // Main App
-    const mainApp = playwrightWindows.getMainPage();
-
-    await electron.evaluate(async (app) => {
-      await app.app.applicationMenu?.items[0]?.click();
-    });
-
-    await mainApp.waitForTimeout(3000);
-    const aboutApp = electron.windows()[2];
-    await test.expect(await aboutApp.title()).toBe('About Symphony');
+    await test.expect(title).toBe('Desktop Application');
   });
 });
